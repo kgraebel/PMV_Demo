@@ -61,14 +61,6 @@ CSS = """
 
   .mono { font-family: "IBM Plex Mono", monospace; }
 
-  .kicker{
-    font-family:"IBM Plex Mono", monospace;
-    font-size:0.72rem;
-    letter-spacing:0.12em;
-    text-transform:uppercase;
-    color:var(--ink-soft);
-    margin:0 0 0.3rem;
-  }
   .page-title{
     font-size:2rem;
     font-weight:700;
@@ -263,9 +255,8 @@ def use_manual_tr():
 
 st.markdown(
     """
-    <p class="kicker">Thermal comfort · Fanger model</p>
     <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem;">
-      <h1 class="page-title">Predicted Mean Vote calculator</h1>
+      <h1 class="page-title">Kevin Graebel's Predicted Mean Vote calculator</h1>
       <div class="standard-tag">ISO 7730 · ASHRAE 55<br>six-parameter steady-state model</div>
     </div>
     <hr class="header-rule">
