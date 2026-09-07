@@ -188,6 +188,7 @@ for k, v in DEFAULTS.items():
     st.session_state.setdefault(k, v)
 st.session_state.setdefault("nest_pulled", False)
 st.session_state.setdefault("mrt_estimated", False)
+st.session_state.setdefault("mrt_expander_expanded", True)
 
 
 def set_val(key, val):
@@ -244,6 +245,7 @@ def estimate_mrt():
     st.session_state.mrt_estimated = True
     st.session_state.mrt_outside_note = f"{conditions.temperature_f:.0f} °F outside in {conditions.location_name}"
     st.session_state.mrt_error = None
+    st.session_state.mrt_expander_expanded = False
 
 
 def use_manual_tr():
@@ -312,7 +314,7 @@ with col_left:
             st.session_state.rh = rh
 
         with st.expander("🏠 Estimate mean radiant temperature from room & weather",
-                          expanded=not st.session_state.mrt_estimated):
+                          expanded=st.session_state.mrt_expander_expanded):
             st.text_input("Location (city, state or ZIP)", key="mrt_location", placeholder="e.g. Chicago, IL")
 
             d1, d2, d3 = st.columns(3)
