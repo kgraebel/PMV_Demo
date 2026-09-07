@@ -1,8 +1,12 @@
 """PMV Comfort Gauge — Streamlit rebuild of the thermal comfort calculator."""
 
 import streamlit as st
+from dotenv import load_dotenv
 
+from nest import NestAPIError, NestThermostat
 from pmv import CLO_PRESETS, MET_PRESETS, pmv_ppd
+
+load_dotenv()
 
 st.set_page_config(page_title="PMV Comfort Gauge", page_icon="🌡️", layout="wide")
 
@@ -174,6 +178,22 @@ def set_val(key, val):
     st.session_state[key] = val
 
 
+def pull_from_nest():
+    try:
+        conditions = NestThermostat().get_room_conditions()
+    except NestAPIError as e:
+        st.session_state.nest_status = ("error", str(e))
+        return
+    st.session_state.ta = round(conditions.air_temperature_c, 1)
+    st.session_state.rh = round(conditions.relative_humidity_pct)
+    where = conditions.room_name or conditions.device_id
+    st.session_state.nest_status = (
+        "success",
+        f"Pulled from {where}: {conditions.air_temperature_c:.1f} °C, "
+        f"{conditions.relative_humidity_pct:.0f}% RH.",
+    )
+
+
 st.markdown(
     """
     <p class="kicker">Thermal comfort · Fanger model</p>
@@ -191,6 +211,12 @@ col_left, col_right = st.columns([1.05, 0.95], gap="large")
 with col_left:
     with st.container(border=True):
         st.markdown('<div class="panel-title">Room &amp; occupant inputs</div>', unsafe_allow_html=True)
+
+        st.button("🌡️ Pull temperature & humidity from Nest", on_click=pull_from_nest, use_container_width=True)
+        status = st.session_state.get("nest_status")
+        if status:
+            level, message = status
+            (st.success if level == "success" else st.error)(message)
 
         st.markdown('<span class="field-name">Air temperature <span class="field-sym">t&#8320;</span></span>', unsafe_allow_html=True)
         ta = st.slider("Air temperature", 10.0, 40.0, step=0.1, key="ta", label_visibility="collapsed", format="%.1f °C")
