@@ -208,7 +208,6 @@ def pull_from_nest():
 
 def use_manual_inputs():
     st.session_state.nest_pulled = False
-    st.session_state._just_switched_manual = True
 
 
 def estimate_mrt():
@@ -249,7 +248,6 @@ def estimate_mrt():
 
 def use_manual_tr():
     st.session_state.mrt_estimated = False
-    st.session_state._just_switched_manual_tr = True
 
 
 st.markdown(
@@ -273,11 +271,17 @@ with col_left:
         st.button("🌡️ Pull temperature & humidity from Nest", on_click=pull_from_nest, use_container_width=True)
         if st.session_state.get("nest_error"):
             st.error(st.session_state.nest_error)
-        # A slider that reappears after being hidden (post-Nest) doesn't pick up an
-        # existing session_state value on that first re-mount unless value= is also
-        # passed. Passing value= on every run instead triggers Streamlit's "default
-        # value AND Session State" warning, so only do it for that one transition run.
-        just_switched_manual = st.session_state.pop("_just_switched_manual", False)
+        # ta/rh's "true" value lives in st.session_state.ta/.rh, a plain (non-widget)
+        # key -- never the slider's own key. If a value is only ever held by a
+        # widget's key, Streamlit deletes it from session_state the run after that
+        # widget stops being rendered (e.g. while the Nest badge is shown instead),
+        # which crashed callbacks (like estimate_mrt) that read it. The slider uses
+        # its own separate "*_input" key, always explicitly seeded from the canonical
+        # value (value=st.session_state.ta), and syncs back into it after every
+        # render. Because "*_input" is a key only this widget ever writes, passing
+        # value= alongside its already-existing entry doesn't trigger Streamlit's
+        # "default value AND Session State" warning -- that warning is specifically
+        # about a key some *other* code path wrote to, which isn't the case here.
         if st.session_state.nest_pulled:
             st.button("Edit manually instead", on_click=use_manual_inputs, use_container_width=True, key="ta_rh_manual_btn")
             st.markdown(
@@ -290,8 +294,8 @@ with col_left:
             ta = st.session_state.ta
         else:
             st.markdown('<span class="field-name">Air temperature <span class="field-sym">t&#8320;</span></span>', unsafe_allow_html=True)
-            slider_kwargs = {"value": st.session_state.ta} if just_switched_manual else {}
-            ta = st.slider("Air temperature", 50.0, 104.0, step=0.2, key="ta", label_visibility="collapsed", format="%.1f °F", **slider_kwargs)
+            ta = st.slider("Air temperature", 50.0, 104.0, value=st.session_state.ta, step=0.2, key="ta_input", label_visibility="collapsed", format="%.1f °F")
+            st.session_state.ta = ta
 
         if st.session_state.nest_pulled:
             st.markdown(
@@ -304,8 +308,8 @@ with col_left:
             rh = st.session_state.rh
         else:
             st.markdown('<span class="field-name">Relative humidity <span class="field-sym">RH</span></span>', unsafe_allow_html=True)
-            slider_kwargs = {"value": st.session_state.rh} if just_switched_manual else {}
-            rh = st.slider("Relative humidity", 0.0, 100.0, step=1.0, key="rh", label_visibility="collapsed", format="%.0f %%", **slider_kwargs)
+            rh = st.slider("Relative humidity", 0.0, 100.0, value=st.session_state.rh, step=1.0, key="rh_input", label_visibility="collapsed", format="%.0f %%")
+            st.session_state.rh = rh
 
         with st.expander("🏠 Estimate mean radiant temperature from room & weather"):
             st.text_input("Location (city, state or ZIP)", key="mrt_location", placeholder="e.g. Chicago, IL")
@@ -339,7 +343,6 @@ with col_left:
             if st.session_state.get("mrt_error"):
                 st.error(st.session_state.mrt_error)
 
-        just_switched_manual_tr = st.session_state.pop("_just_switched_manual_tr", False)
         if st.session_state.mrt_estimated:
             st.button("Edit manually instead", on_click=use_manual_tr, use_container_width=True, key="tr_manual_btn")
             st.markdown(
@@ -355,8 +358,8 @@ with col_left:
             tr = st.session_state.tr
         else:
             st.markdown('<span class="field-name">Mean radiant temperature <span class="field-sym">t&#7523;</span></span>', unsafe_allow_html=True)
-            slider_kwargs = {"value": st.session_state.tr} if just_switched_manual_tr else {}
-            tr = st.slider("Mean radiant temperature", 50.0, 104.0, step=0.2, key="tr", label_visibility="collapsed", format="%.1f °F", **slider_kwargs)
+            tr = st.slider("Mean radiant temperature", 50.0, 104.0, value=st.session_state.tr, step=0.2, key="tr_input", label_visibility="collapsed", format="%.1f °F")
+            st.session_state.tr = tr
 
         st.markdown('<span class="field-name">Air speed, relative <span class="field-sym">v</span></span>', unsafe_allow_html=True)
         vel = st.slider("Air speed", 0.0, 2.0, step=0.01, key="vel", label_visibility="collapsed", format="%.2f m/s")
