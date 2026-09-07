@@ -205,6 +205,7 @@ def pull_from_nest():
 
 def use_manual_inputs():
     st.session_state.nest_pulled = False
+    st.session_state._just_switched_manual = True
 
 
 st.markdown(
@@ -228,6 +229,11 @@ with col_left:
         st.button("🌡️ Pull temperature & humidity from Nest", on_click=pull_from_nest, use_container_width=True)
         if st.session_state.get("nest_error"):
             st.error(st.session_state.nest_error)
+        # A slider that reappears after being hidden (post-Nest) doesn't pick up an
+        # existing session_state value on that first re-mount unless value= is also
+        # passed. Passing value= on every run instead triggers Streamlit's "default
+        # value AND Session State" warning, so only do it for that one transition run.
+        just_switched_manual = st.session_state.pop("_just_switched_manual", False)
         if st.session_state.nest_pulled:
             st.button("Edit manually instead", on_click=use_manual_inputs, use_container_width=True)
             st.markdown(
@@ -240,7 +246,8 @@ with col_left:
             ta = st.session_state.ta
         else:
             st.markdown('<span class="field-name">Air temperature <span class="field-sym">t&#8320;</span></span>', unsafe_allow_html=True)
-            ta = st.slider("Air temperature", 50.0, 104.0, value=st.session_state.ta, step=0.2, key="ta", label_visibility="collapsed", format="%.1f °F")
+            slider_kwargs = {"value": st.session_state.ta} if just_switched_manual else {}
+            ta = st.slider("Air temperature", 50.0, 104.0, step=0.2, key="ta", label_visibility="collapsed", format="%.1f °F", **slider_kwargs)
 
         st.markdown('<span class="field-name">Mean radiant temperature <span class="field-sym">t&#7523;</span></span>', unsafe_allow_html=True)
         tr = st.slider("Mean radiant temperature", 50.0, 104.0, step=0.2, key="tr", label_visibility="collapsed", format="%.1f °F")
@@ -259,7 +266,8 @@ with col_left:
             rh = st.session_state.rh
         else:
             st.markdown('<span class="field-name">Relative humidity <span class="field-sym">RH</span></span>', unsafe_allow_html=True)
-            rh = st.slider("Relative humidity", 0.0, 100.0, value=st.session_state.rh, step=1.0, key="rh", label_visibility="collapsed", format="%.0f %%")
+            slider_kwargs = {"value": st.session_state.rh} if just_switched_manual else {}
+            rh = st.slider("Relative humidity", 0.0, 100.0, step=1.0, key="rh", label_visibility="collapsed", format="%.0f %%", **slider_kwargs)
 
         st.markdown('<span class="field-name">Metabolic rate <span class="field-sym">M</span></span>', unsafe_allow_html=True)
         met = st.slider("Metabolic rate", 0.7, 4.0, step=0.05, key="met", label_visibility="collapsed", format="%.2f met")
