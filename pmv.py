@@ -114,3 +114,39 @@ def pmv_ppd(ta: float, tr: float, vel: float, rh: float, met: float, clo: float,
 
     return PmvResult(pmv=pmv, ppd=ppd, balance=balance, sensation=sensation,
                       category=category, category_desc=category_desc)
+
+
+def recommended_air_temp_c(tr: float, vel: float, rh: float, met: float, clo: float,
+                            target_pmv: float = 0.0, wme: float = 0.0,
+                            lo: float = 10.0, hi: float = 40.0,
+                            tol: float = 0.005, max_iter: int = 50) -> float:
+    """Air temperature (°C) that brings PMV to target_pmv (default: neutral),
+    holding every other input fixed -- i.e. "what should the thermostat be set
+    to" given the room's current radiant temperature, air speed, humidity, and
+    the occupant's activity and clothing.
+
+    Finds it by bisection: PMV increases monotonically with air temperature
+    under the Fanger model (holding the other five inputs fixed), so there's
+    at most one crossing of target_pmv in [lo, hi]. Clamps to that range's
+    edge if target_pmv isn't reachable within it (e.g. even the coldest
+    allowed air still feels too warm for very light clothing).
+    """
+    def pmv_at(ta):
+        return pmv_ppd(ta, tr, vel, rh, met, clo, wme).pmv
+
+    f_lo, f_hi = pmv_at(lo) - target_pmv, pmv_at(hi) - target_pmv
+    if f_lo >= 0:
+        return lo
+    if f_hi <= 0:
+        return hi
+
+    for _ in range(max_iter):
+        mid = (lo + hi) / 2
+        f_mid = pmv_at(mid) - target_pmv
+        if abs(f_mid) < tol:
+            return mid
+        if f_mid > 0:
+            hi = mid
+        else:
+            lo = mid
+    return (lo + hi) / 2

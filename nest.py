@@ -24,6 +24,8 @@ SDM_BASE_URL = "https://smartdevicemanagement.googleapis.com/v1"
 TEMPERATURE_TRAIT = "sdm.devices.traits.Temperature"
 HUMIDITY_TRAIT = "sdm.devices.traits.Humidity"
 INFO_TRAIT = "sdm.devices.traits.Info"
+MODE_TRAIT = "sdm.devices.traits.ThermostatMode"
+SETPOINT_TRAIT = "sdm.devices.traits.ThermostatTemperatureSetpoint"
 
 
 class NestAPIError(RuntimeError):
@@ -36,6 +38,27 @@ class RoomConditions:
     relative_humidity_pct: float
     device_id: str
     room_name: Optional[str] = None
+    mode: Optional[str] = None  # "HEAT" | "COOL" | "HEATCOOL" | "OFF", if reported
+    setpoint_heat_c: Optional[float] = None
+    setpoint_cool_c: Optional[float] = None
+
+    def active_setpoint_c(self) -> Optional[float]:
+        """The setpoint the thermostat is actively controlling to, given its mode.
+
+        HEATCOOL reports both a heat and a cool setpoint (a range); this returns
+        whichever one is closer to the current room temperature, since that's the
+        one about to engage.
+        """
+        if self.mode == "HEAT":
+            return self.setpoint_heat_c
+        if self.mode == "COOL":
+            return self.setpoint_cool_c
+        if self.mode == "HEATCOOL":
+            candidates = [c for c in (self.setpoint_heat_c, self.setpoint_cool_c) if c is not None]
+            if not candidates:
+                return None
+            return min(candidates, key=lambda c: abs(c - self.air_temperature_c))
+        return None
 
 
 @dataclass
@@ -151,9 +174,17 @@ class NestThermostat:
             room_name = relation.get("displayName")
             break
 
+        mode = traits.get(MODE_TRAIT, {}).get("mode")
+        setpoint = traits.get(SETPOINT_TRAIT, {})
+        heat_c = setpoint.get("heatCelsius")
+        cool_c = setpoint.get("coolCelsius")
+
         return RoomConditions(
             air_temperature_c=float(traits[TEMPERATURE_TRAIT]["ambientTemperatureCelsius"]),
             relative_humidity_pct=float(traits[HUMIDITY_TRAIT]["ambientHumidityPercent"]),
             device_id=target_id,
             room_name=room_name,
+            mode=mode,
+            setpoint_heat_c=float(heat_c) if heat_c is not None else None,
+            setpoint_cool_c=float(cool_c) if cool_c is not None else None,
         )

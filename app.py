@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from fan import FAN_SPEED_PRESETS
 from mrt import CEILING_R_PRESETS, FLOOR_R_PRESETS, WALL_R_PRESETS, WINDOW_R_PRESETS, RoomMRTEstimator
 from nest import NestAPIError, NestThermostat
-from pmv import CLO_PRESETS, MET_PRESETS, c_to_f, f_to_c, pmv_ppd
+from pmv import CLO_PRESETS, MET_PRESETS, c_to_f, f_to_c, pmv_ppd, recommended_air_temp_c
 from weather import OutdoorWeather, WeatherAPIError
 
 load_dotenv()
@@ -189,6 +189,8 @@ DEFAULTS = {"ta": c_to_f(24.0), "tr": c_to_f(24.0), "vel": 0.1, "rh": 50.0, "met
 for k, v in DEFAULTS.items():
     st.session_state.setdefault(k, v)
 st.session_state.setdefault("nest_pulled", False)
+st.session_state.setdefault("nest_setpoint_f", None)
+st.session_state.setdefault("nest_mode", None)
 st.session_state.setdefault("mrt_estimated", False)
 st.session_state.setdefault("mrt_expander_expanded", False)
 
@@ -207,6 +209,10 @@ def pull_from_nest():
     st.session_state.rh = round(conditions.relative_humidity_pct, 0)
     st.session_state.nest_pulled = True
     st.session_state.nest_error = None
+
+    setpoint_c = conditions.active_setpoint_c()
+    st.session_state.nest_setpoint_f = round(c_to_f(setpoint_c), 1) if setpoint_c is not None else None
+    st.session_state.nest_mode = conditions.mode
 
 
 def use_manual_inputs():
@@ -424,6 +430,24 @@ pmv_clamped = max(-3.5, min(3.5, result.pmv))
 marker_pct = max(0, min(100, ((pmv_clamped + 3) / 6) * 100))
 cat_var = {"Category I": "cat1", "Category II": "cat2", "Category III": "cat3", "Outside range": "cat-out"}[result.category]
 
+setpoint_html = ""
+if st.session_state.nest_pulled:
+    # Recomputed live from the current tr/vel/rh/met/clo (not frozen at pull
+    # time), so it stays correct as the user adjusts anything else.
+    recommended_f = c_to_f(recommended_air_temp_c(
+        f_to_c(st.session_state.tr), st.session_state.vel, st.session_state.rh,
+        st.session_state.met, st.session_state.clo,
+    ))
+    recommended_f = round(recommended_f * 2) / 2  # nearest 0.5F, matching real thermostat steps
+    current_setpoint = st.session_state.nest_setpoint_f
+    current_str = f"{current_setpoint:.1f} °F" if current_setpoint is not None else "Not set"
+    setpoint_html = (
+        '<div class="metrics-row">'
+        f'<div class="metric-tile"><div class="k">Current setpoint</div><div class="v">{current_str}</div></div>'
+        f'<div class="metric-tile"><div class="k">Recommended setpoint</div><div class="v">{recommended_f:.1f} °F</div></div>'
+        '</div>'
+    )
+
 with col_right:
     st.markdown(
         f"""
@@ -437,7 +461,7 @@ with col_right:
           <div class="gauge-track"><div class="gauge-marker" style="left:{marker_pct:.2f}%"></div></div>
           <div class="gauge-ticks"><span>&minus;3</span><span>&minus;2</span><span>&minus;1</span><span>0</span><span>+1</span><span>+2</span><span>+3</span></div>
           <div class="gauge-words"><span>Cold</span><span>Cool</span><span>Sl. cool</span><span>Neutral</span><span>Sl. warm</span><span>Warm</span><span>Hot</span></div>
-
+          {setpoint_html}
           <div class="metrics-row">
             <div class="metric-tile"><div class="k">Dissatisfied</div><div class="v">{result.ppd:.1f}%</div></div>
             <div class="metric-tile"><div class="k">Skin heat balance</div><div class="v">{result.balance:+.1f} W/m²</div></div>
