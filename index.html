@@ -1,0 +1,727 @@
+<title>PMV Comfort Gauge</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --paper:#EFF3F1;
+    --surface:#FFFFFF;
+    --surface-2:#E4EAE7;
+    --ink:#16211E;
+    --ink-soft:#4B5A55;
+    --line:#C9D3CE;
+    --accent:#2A6F6B;
+    --accent-ink:#EAF5F3;
+    --cold:#3E7CB1;
+    --neutral-data:#6E7A70;
+    --hot:#C1442A;
+    --cat1:#2A6F6B;
+    --cat2:#A6752B;
+    --cat3:#C1442A;
+    --cat-out:#9E2A1E;
+    --shadow: 0 1px 2px rgba(20,32,29,0.06), 0 8px 24px -12px rgba(20,32,29,0.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#10181A;
+      --surface:#17211F;
+      --surface-2:#1E2A27;
+      --ink:#E7F0EC;
+      --ink-soft:#A8BDB6;
+      --line:#2B3835;
+      --accent:#4FA39D;
+      --accent-ink:#06110F;
+      --cold:#6FA6D6;
+      --neutral-data:#93A29A;
+      --hot:#E0713F;
+      --cat1:#4FA39D;
+      --cat2:#D6A94A;
+      --cat3:#E0713F;
+      --cat-out:#E2584A;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#10181A;
+    --surface:#17211F;
+    --surface-2:#1E2A27;
+    --ink:#E7F0EC;
+    --ink-soft:#A8BDB6;
+    --line:#2B3835;
+    --accent:#4FA39D;
+    --accent-ink:#06110F;
+    --cold:#6FA6D6;
+    --neutral-data:#93A29A;
+    --hot:#E0713F;
+    --cat1:#4FA39D;
+    --cat2:#D6A94A;
+    --cat3:#E0713F;
+    --cat-out:#E2584A;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Archivo", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:1080px;
+    margin:0 auto;
+    padding:2.5rem 1.5rem 4rem;
+  }
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:1.5rem;
+    flex-wrap:wrap;
+    margin-bottom:2rem;
+    border-bottom:1px solid var(--line);
+    padding-bottom:1.25rem;
+  }
+  .kicker{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.72rem;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:0 0 0.4rem;
+  }
+  h1{
+    font-size:clamp(1.6rem, 2.4vw, 2.1rem);
+    font-weight:700;
+    margin:0;
+    letter-spacing:-0.01em;
+    text-wrap:balance;
+  }
+  .standard-tag{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.75rem;
+    color:var(--ink-soft);
+    text-align:right;
+    line-height:1.5;
+  }
+  .standard-tag strong{color:var(--ink); font-weight:600;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:1.05fr 0.95fr;
+    gap:1.5rem;
+    align-items:start;
+  }
+  @media (max-width:860px){
+    .grid{grid-template-columns:1fr;}
+  }
+
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    box-shadow:var(--shadow);
+  }
+  .panel-head{
+    padding:1.1rem 1.4rem;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+  }
+  .panel-head h2{
+    font-size:0.95rem;
+    font-weight:600;
+    margin:0;
+    letter-spacing:0.01em;
+  }
+  .panel-head .hint{
+    font-size:0.72rem;
+    color:var(--ink-soft);
+    font-family:"IBM Plex Mono", monospace;
+  }
+  .panel-body{padding:1.4rem;}
+
+  .field{
+    margin-bottom:1.35rem;
+  }
+  .field:last-child{margin-bottom:0;}
+  .field-label{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:0.5rem;
+  }
+  .field-label .name{
+    font-size:0.86rem;
+    font-weight:600;
+  }
+  .field-label .name .sym{
+    color:var(--ink-soft);
+    font-family:"IBM Plex Mono", monospace;
+    font-weight:500;
+    font-size:0.78rem;
+    margin-left:0.3rem;
+  }
+  .field-label .value{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.92rem;
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+    background:var(--surface-2);
+    border-radius:5px;
+    padding:0.12rem 0.5rem;
+    min-width:3.6em;
+    text-align:right;
+  }
+
+  input[type="range"]{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:4px;
+    border-radius:2px;
+    background:var(--surface-2);
+    outline:none;
+    cursor:pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    appearance:none;
+    width:17px; height:17px;
+    border-radius:50%;
+    background:var(--accent);
+    border:2px solid var(--surface);
+    box-shadow:0 0 0 1px var(--accent);
+    cursor:pointer;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:15px; height:15px;
+    border-radius:50%;
+    background:var(--accent);
+    border:2px solid var(--surface);
+    box-shadow:0 0 0 1px var(--accent);
+    cursor:pointer;
+  }
+  input[type="range"]:focus-visible::-webkit-slider-thumb{
+    box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  .range-scale{
+    display:flex;
+    justify-content:space-between;
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.66rem;
+    color:var(--ink-soft);
+    margin-top:0.3rem;
+  }
+
+  .presets{
+    display:flex;
+    flex-wrap:wrap;
+    gap:0.4rem;
+    margin-top:0.6rem;
+  }
+  .preset-btn{
+    font-family:"Archivo", sans-serif;
+    font-size:0.72rem;
+    font-weight:600;
+    padding:0.32rem 0.6rem;
+    border-radius:6px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    color:var(--ink-soft);
+    cursor:pointer;
+    transition:border-color .12s, color .12s, background .12s;
+  }
+  .preset-btn:hover{
+    border-color:var(--accent);
+    color:var(--ink);
+  }
+  .preset-btn:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:1px;
+  }
+  .preset-btn.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:var(--accent-ink);
+  }
+
+  /* results panel */
+  .result-hero{
+    padding:1.5rem 1.4rem 1.1rem;
+    text-align:center;
+    border-bottom:1px solid var(--line);
+  }
+  .pmv-value{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:3.4rem;
+    font-weight:600;
+    line-height:1;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:-0.02em;
+  }
+  .pmv-value .sign{opacity:0.55; font-size:0.55em; vertical-align:0.3em;}
+  .pmv-caption{
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    margin-top:0.5rem;
+    font-family:"IBM Plex Mono", monospace;
+    letter-spacing:0.02em;
+  }
+  .sensation-label{
+    display:inline-block;
+    margin-top:0.7rem;
+    font-size:0.95rem;
+    font-weight:600;
+    padding:0.3rem 0.85rem;
+    border-radius:999px;
+    background:var(--surface-2);
+  }
+
+  .gauge-wrap{
+    padding:1.3rem 1.4rem 0.6rem;
+  }
+  .gauge-track{
+    position:relative;
+    height:34px;
+    border-radius:6px;
+    background:linear-gradient(to right,
+      var(--cold) 0%,
+      var(--neutral-data) 50%,
+      var(--hot) 100%);
+    margin-bottom:0.35rem;
+  }
+  .gauge-marker{
+    position:absolute;
+    top:-6px;
+    width:2px;
+    height:46px;
+    background:var(--ink);
+    transform:translateX(-50%);
+  }
+  .gauge-marker::after{
+    content:"";
+    position:absolute;
+    top:-7px;
+    left:50%;
+    transform:translateX(-50%);
+    width:0; height:0;
+    border-left:6px solid transparent;
+    border-right:6px solid transparent;
+    border-top:7px solid var(--ink);
+  }
+  .gauge-ticks{
+    display:flex;
+    justify-content:space-between;
+  }
+  .gauge-ticks span{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.62rem;
+    color:var(--ink-soft);
+    width:14.28%;
+    text-align:center;
+  }
+  .gauge-words{
+    display:flex;
+    justify-content:space-between;
+    margin-top:0.15rem;
+  }
+  .gauge-words span{
+    font-size:0.6rem;
+    color:var(--ink-soft);
+    width:14.28%;
+    text-align:center;
+    line-height:1.25;
+  }
+
+  .metrics-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1px;
+    background:var(--line);
+    margin:1.3rem 1.4rem 0;
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .metric-tile{
+    background:var(--surface);
+    padding:0.85rem 1rem;
+  }
+  .metric-tile .k{
+    font-size:0.68rem;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .metric-tile .v{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:1.3rem;
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+    margin-top:0.15rem;
+  }
+
+  .category-strip{
+    margin:1rem 1.4rem 1.4rem;
+    padding:0.8rem 1rem;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--surface-2);
+    display:flex;
+    align-items:center;
+    gap:0.7rem;
+  }
+  .category-dot{
+    width:10px; height:10px;
+    border-radius:50%;
+    flex:none;
+    background:var(--cat-color, var(--ink-soft));
+  }
+  .category-text{
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    line-height:1.4;
+  }
+  .category-text strong{
+    color:var(--ink);
+    font-weight:600;
+  }
+
+  .about{
+    margin-top:1.5rem;
+    padding:1.1rem 1.4rem;
+    font-size:0.82rem;
+    color:var(--ink-soft);
+    line-height:1.6;
+    border-top:1px solid var(--line);
+  }
+  .about strong{color:var(--ink);}
+
+  footer{
+    margin-top:2rem;
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.68rem;
+    color:var(--ink-soft);
+    text-align:center;
+  }
+
+  @media (prefers-reduced-motion: no-preference){
+    .gauge-marker{transition:left .18s ease-out;}
+    .preset-btn{transition:border-color .12s, color .12s, background .12s;}
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <p class="kicker">Thermal comfort · Fanger model</p>
+      <h1>Predicted Mean Vote calculator</h1>
+    </div>
+    <div class="standard-tag">
+      ISO 7730 <strong>·</strong> ASHRAE 55<br>
+      six-parameter steady-state model
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- INPUT PANEL -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Room &amp; occupant inputs</h2>
+        <span class="hint">6 variables</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="field">
+          <div class="field-label">
+            <span class="name">Air temperature <span class="sym">t&#8320;</span></span>
+            <span class="value" id="v-ta">24.0 °C</span>
+          </div>
+          <input type="range" id="ta" min="10" max="40" step="0.1" value="24">
+          <div class="range-scale"><span>10 °C</span><span>40 °C</span></div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            <span class="name">Mean radiant temperature <span class="sym">t&#7523;</span></span>
+            <span class="value" id="v-tr">24.0 °C</span>
+          </div>
+          <input type="range" id="tr" min="10" max="40" step="0.1" value="24">
+          <div class="range-scale"><span>10 °C</span><span>40 °C</span></div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            <span class="name">Air speed, relative <span class="sym">v</span></span>
+            <span class="value" id="v-vel">0.10 m/s</span>
+          </div>
+          <input type="range" id="vel" min="0" max="2" step="0.01" value="0.1">
+          <div class="range-scale"><span>0 m/s (still)</span><span>2 m/s</span></div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            <span class="name">Relative humidity <span class="sym">RH</span></span>
+            <span class="value" id="v-rh">50 %</span>
+          </div>
+          <input type="range" id="rh" min="0" max="100" step="1" value="50">
+          <div class="range-scale"><span>0 %</span><span>100 %</span></div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            <span class="name">Metabolic rate <span class="sym">M</span></span>
+            <span class="value" id="v-met">1.10 met</span>
+          </div>
+          <input type="range" id="met" min="0.7" max="4" step="0.05" value="1.1">
+          <div class="range-scale"><span>0.7 met</span><span>4.0 met</span></div>
+          <div class="presets" id="preset-met"></div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            <span class="name">Clothing insulation <span class="sym">I&#7580;&#7517;</span></span>
+            <span class="value" id="v-clo">0.61 clo</span>
+          </div>
+          <input type="range" id="clo" min="0" max="2" step="0.01" value="0.61">
+          <div class="range-scale"><span>0 clo (nude)</span><span>2.0 clo (arctic)</span></div>
+          <div class="presets" id="preset-clo"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RESULT PANEL -->
+    <section class="panel" id="result-panel">
+      <div class="result-hero">
+        <div class="pmv-value" id="pmv-out">+0.00</div>
+        <p class="pmv-caption">PREDICTED MEAN VOTE · &minus;3 TO +3</p>
+        <span class="sensation-label" id="sensation-out">Neutral</span>
+      </div>
+
+      <div class="gauge-wrap">
+        <div class="gauge-track">
+          <div class="gauge-marker" id="gauge-marker" style="left:50%"></div>
+        </div>
+        <div class="gauge-ticks">
+          <span>&minus;3</span><span>&minus;2</span><span>&minus;1</span><span>0</span><span>+1</span><span>+2</span><span>+3</span>
+        </div>
+        <div class="gauge-words">
+          <span>Cold</span><span>Cool</span><span>Sl. cool</span><span>Neutral</span><span>Sl. warm</span><span>Warm</span><span>Hot</span>
+        </div>
+      </div>
+
+      <div class="metrics-row">
+        <div class="metric-tile">
+          <div class="k">Dissatisfied</div>
+          <div class="v" id="ppd-out">5.0%</div>
+        </div>
+        <div class="metric-tile">
+          <div class="k">Skin heat balance</div>
+          <div class="v" id="balance-out">0 W/m²</div>
+        </div>
+      </div>
+
+      <div class="category-strip" id="category-strip">
+        <div class="category-dot" id="category-dot"></div>
+        <div class="category-text" id="category-text">
+          <strong>Category I</strong> — meets the tightest comfort tolerance (PPD &lt; 6%).
+        </div>
+      </div>
+
+      <div class="about">
+        <strong>PMV</strong> predicts the mean thermal-sensation vote of a large population on the ASHRAE
+        7-point scale, from a steady-state heat balance of the human body (Fanger, 1970).
+        <strong>PPD</strong> converts that vote into the percentage of people expected to be dissatisfied,
+        even at PMV&nbsp;=&nbsp;0 at least 5% remain unsatisfied.
+      </div>
+    </section>
+  </div>
+
+  <footer>Fanger heat-balance iteration · ISO 7730:2005 Annex D reference algorithm</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var ids = ["ta","tr","vel","rh","met","clo"];
+  var els = {};
+  ids.forEach(function(id){ els[id] = document.getElementById(id); });
+
+  var metPresets = [
+    {label:"Reclining", v:0.8},
+    {label:"Seated, quiet", v:1.0},
+    {label:"Typing", v:1.1},
+    {label:"Standing, light", v:1.2},
+    {label:"Walking 1.2 m/s", v:2.0},
+    {label:"Heavy work", v:3.4}
+  ];
+  var cloPresets = [
+    {label:"Shorts & tee", v:0.36},
+    {label:"Short-sleeve shirt", v:0.57},
+    {label:"Shirt & trousers", v:0.61},
+    {label:"Business suit", v:1.0},
+    {label:"Suit + sweater", v:1.3},
+    {label:"Heavy wool suit", v:1.5}
+  ];
+
+  function buildPresets(containerId, list, inputEl){
+    var el = document.getElementById(containerId);
+    list.forEach(function(p){
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "preset-btn";
+      btn.textContent = p.label;
+      btn.dataset.v = p.v;
+      btn.addEventListener("click", function(){
+        inputEl.value = p.v;
+        update();
+      });
+      el.appendChild(btn);
+    });
+  }
+  buildPresets("preset-met", metPresets, els.met);
+  buildPresets("preset-clo", cloPresets, els.clo);
+
+  function syncPresetActive(containerId, inputEl){
+    var el = document.getElementById(containerId);
+    var current = parseFloat(inputEl.value);
+    Array.prototype.forEach.call(el.children, function(btn){
+      btn.classList.toggle("active", Math.abs(parseFloat(btn.dataset.v) - current) < 0.001);
+    });
+  }
+
+  // Fanger PMV/PPD — ISO 7730:2005 Annex D reference algorithm
+  function pmvPpd(ta, tr, vel, rh, met, clo, wme){
+    wme = wme || 0;
+    var pa = rh * 10 * Math.exp(16.6536 - 4030.183 / (ta + 235));
+
+    var icl = 0.155 * clo;
+    var m = met * 58.15;
+    var w = wme * 58.15;
+    var mw = m - w;
+
+    var fcl;
+    if (icl <= 0.078) fcl = 1 + 1.29 * icl;
+    else fcl = 1.05 + 0.645 * icl;
+
+    var hcf = 12.1 * Math.sqrt(vel);
+    var hc = hcf;
+    var taa = ta + 273;
+    var tra = tr + 273;
+    var tcla = taa + (35.5 - ta) / (3.5 * icl + 0.1);
+
+    var p1 = icl * fcl;
+    var p2 = p1 * 3.96;
+    var p3 = p1 * 100;
+    var p4 = p1 * taa;
+    var p5 = (308.7 - 0.028 * mw) + p2 * Math.pow(tra / 100, 4);
+
+    var xn = tcla / 100;
+    var xf = tcla / 100;
+    var eps = 0.00015;
+    var n = 0;
+
+    while (Math.abs(xn - xf) > eps && n < 150) {
+      xf = (xf + xn) / 2;
+      var hcn = 2.38 * Math.pow(Math.abs(100 * xf - taa), 0.25);
+      hc = (hcf > hcn) ? hcf : hcn;
+      xn = (p5 + p4 * hc - p2 * Math.pow(xf, 4)) / (100 + p3 * hc);
+      n++;
+    }
+
+    var tcl = 100 * xn - 273;
+
+    var hl1 = 3.05 * 0.001 * (5733 - 6.99 * mw - pa);
+    var hl2 = (mw > 58.15) ? 0.42 * (mw - 58.15) : 0;
+    var hl3 = 1.7 * 0.00001 * m * (5867 - pa);
+    var hl4 = 0.0014 * m * (34 - ta);
+    var hl5 = 3.96 * p1 * (Math.pow(xn, 4) - Math.pow(tra / 100, 4));
+    var hl6 = fcl * hc * (tcl - ta);
+
+    var ts = 0.303 * Math.exp(-0.036 * m) + 0.028;
+    var pmv = ts * (mw - hl1 - hl2 - hl3 - hl4 - hl5 - hl6);
+    var ppd = 100 - 95 * Math.exp(-0.03353 * Math.pow(pmv, 4) - 0.2179 * Math.pow(pmv, 2));
+    var balance = mw - hl1 - hl2 - hl3 - hl4 - hl5 - hl6;
+
+    return { pmv: pmv, ppd: ppd, balance: balance };
+  }
+
+  var sensations = ["Cold","Cool","Slightly cool","Neutral","Slightly warm","Warm","Hot"];
+
+  function fmtSigned(n, d){
+    var s = n.toFixed(d);
+    return (n >= 0 ? "+" : "") + s;
+  }
+
+  function update(){
+    var ta = parseFloat(els.ta.value);
+    var tr = parseFloat(els.tr.value);
+    var vel = parseFloat(els.vel.value);
+    var rh = parseFloat(els.rh.value);
+    var met = parseFloat(els.met.value);
+    var clo = parseFloat(els.clo.value);
+
+    document.getElementById("v-ta").textContent = ta.toFixed(1) + " °C";
+    document.getElementById("v-tr").textContent = tr.toFixed(1) + " °C";
+    document.getElementById("v-vel").textContent = vel.toFixed(2) + " m/s";
+    document.getElementById("v-rh").textContent = rh.toFixed(0) + " %";
+    document.getElementById("v-met").textContent = met.toFixed(2) + " met";
+    document.getElementById("v-clo").textContent = clo.toFixed(2) + " clo";
+
+    syncPresetActive("preset-met", els.met);
+    syncPresetActive("preset-clo", els.clo);
+
+    var r = pmvPpd(ta, tr, vel, rh, met, clo, 0);
+    var pmv = Math.max(-3.5, Math.min(3.5, r.pmv));
+
+    document.getElementById("pmv-out").textContent = fmtSigned(r.pmv, 2);
+    document.getElementById("ppd-out").textContent = r.ppd.toFixed(1) + "%";
+    document.getElementById("balance-out").textContent = fmtSigned(r.balance, 1) + " W/m²";
+
+    var idx = Math.round(Math.min(3, Math.max(-3, r.pmv))) + 3;
+    document.getElementById("sensation-out").textContent = sensations[idx];
+
+    var pct = ((pmv + 3) / 6) * 100;
+    pct = Math.max(0, Math.min(100, pct));
+    document.getElementById("gauge-marker").style.left = pct + "%";
+
+    var absPmv = Math.abs(r.pmv);
+    var cat, catLabel, catDesc;
+    if (absPmv <= 0.2 && r.ppd < 6){
+      cat = "cat1"; catLabel = "Category I"; catDesc = "meets the tightest comfort tolerance (PPD &lt; 6%).";
+    } else if (absPmv <= 0.5 && r.ppd < 10){
+      cat = "cat2"; catLabel = "Category II"; catDesc = "meets the normal design tolerance (PPD &lt; 10%).";
+    } else if (absPmv <= 0.7 && r.ppd < 15){
+      cat = "cat3"; catLabel = "Category III"; catDesc = "meets the relaxed acceptable tolerance (PPD &lt; 15%).";
+    } else {
+      cat = "cat-out"; catLabel = "Outside range"; catDesc = "exceeds ISO 7730's acceptable PPD tolerances.";
+    }
+    var dot = document.getElementById("category-dot");
+    dot.style.setProperty("--cat-color", "var(--" + cat + ")");
+    document.getElementById("category-text").innerHTML = "<strong>" + catLabel + "</strong> — " + catDesc;
+
+    try {
+      localStorage.setItem("pmv-inputs", JSON.stringify({ta:ta,tr:tr,vel:vel,rh:rh,met:met,clo:clo}));
+    } catch(e) {}
+  }
+
+  ids.forEach(function(id){
+    els[id].addEventListener("input", update);
+  });
+
+  try {
+    var saved = JSON.parse(localStorage.getItem("pmv-inputs"));
+    if (saved) {
+      ids.forEach(function(id){
+        if (typeof saved[id] === "number") els[id].value = saved[id];
+      });
+    }
+  } catch(e) {}
+
+  update();
+})();
+</script>
