@@ -152,8 +152,8 @@ class NestThermostat:
             break
 
         return RoomConditions(
-            air_temperature_c=traits[TEMPERATURE_TRAIT]["ambientTemperatureCelsius"],
-            relative_humidity_pct=traits[HUMIDITY_TRAIT]["ambientHumidityPercent"],
+            air_temperature_c=float(traits[TEMPERATURE_TRAIT]["ambientTemperatureCelsius"]),
+            relative_humidity_pct=float(traits[HUMIDITY_TRAIT]["ambientHumidityPercent"]),
             device_id=target_id,
             room_name=room_name,
         )
