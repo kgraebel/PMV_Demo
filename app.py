@@ -311,7 +311,8 @@ with col_left:
             rh = st.slider("Relative humidity", 0.0, 100.0, value=st.session_state.rh, step=1.0, key="rh_input", label_visibility="collapsed", format="%.0f %%")
             st.session_state.rh = rh
 
-        with st.expander("🏠 Estimate mean radiant temperature from room & weather"):
+        with st.expander("🏠 Estimate mean radiant temperature from room & weather",
+                          expanded=not st.session_state.mrt_estimated):
             st.text_input("Location (city, state or ZIP)", key="mrt_location", placeholder="e.g. Chicago, IL")
 
             d1, d2, d3 = st.columns(3)
