@@ -5,6 +5,14 @@ from dataclasses import dataclass
 
 SENSATIONS = ["Cold", "Cool", "Slightly cool", "Neutral", "Slightly warm", "Warm", "Hot"]
 
+
+def c_to_f(celsius: float) -> float:
+    return celsius * 9 / 5 + 32
+
+
+def f_to_c(fahrenheit: float) -> float:
+    return (fahrenheit - 32) * 5 / 9
+
 MET_PRESETS = [
     ("Reclining", 0.8),
     ("Seated", 1.0),

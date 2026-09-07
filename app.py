@@ -4,7 +4,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from nest import NestAPIError, NestThermostat
-from pmv import CLO_PRESETS, MET_PRESETS, pmv_ppd
+from pmv import CLO_PRESETS, MET_PRESETS, c_to_f, f_to_c, pmv_ppd
 
 load_dotenv()
 
@@ -169,7 +169,7 @@ CSS = """
 """
 st.markdown(CSS, unsafe_allow_html=True)
 
-DEFAULTS = {"ta": 24.0, "tr": 24.0, "vel": 0.1, "rh": 50.0, "met": 1.1, "clo": 0.61}
+DEFAULTS = {"ta": c_to_f(24.0), "tr": c_to_f(24.0), "vel": 0.1, "rh": 50.0, "met": 1.1, "clo": 0.61}
 for k, v in DEFAULTS.items():
     st.session_state.setdefault(k, v)
 
@@ -184,12 +184,12 @@ def pull_from_nest():
     except NestAPIError as e:
         st.session_state.nest_status = ("error", str(e))
         return
-    st.session_state.ta = round(conditions.air_temperature_c, 1)
+    st.session_state.ta = round(c_to_f(conditions.air_temperature_c), 1)
     st.session_state.rh = round(conditions.relative_humidity_pct)
     where = conditions.room_name or conditions.device_id
     st.session_state.nest_status = (
         "success",
-        f"Pulled from {where}: {conditions.air_temperature_c:.1f} °C, "
+        f"Pulled from {where}: {c_to_f(conditions.air_temperature_c):.1f} °F, "
         f"{conditions.relative_humidity_pct:.0f}% RH.",
     )
 
@@ -219,10 +219,10 @@ with col_left:
             (st.success if level == "success" else st.error)(message)
 
         st.markdown('<span class="field-name">Air temperature <span class="field-sym">t&#8320;</span></span>', unsafe_allow_html=True)
-        ta = st.slider("Air temperature", 10.0, 40.0, step=0.1, key="ta", label_visibility="collapsed", format="%.1f °C")
+        ta = st.slider("Air temperature", 50.0, 104.0, step=0.2, key="ta", label_visibility="collapsed", format="%.1f °F")
 
         st.markdown('<span class="field-name">Mean radiant temperature <span class="field-sym">t&#7523;</span></span>', unsafe_allow_html=True)
-        tr = st.slider("Mean radiant temperature", 10.0, 40.0, step=0.1, key="tr", label_visibility="collapsed", format="%.1f °C")
+        tr = st.slider("Mean radiant temperature", 50.0, 104.0, step=0.2, key="tr", label_visibility="collapsed", format="%.1f °F")
 
         st.markdown('<span class="field-name">Air speed, relative <span class="field-sym">v</span></span>', unsafe_allow_html=True)
         vel = st.slider("Air speed", 0.0, 2.0, step=0.01, key="vel", label_visibility="collapsed", format="%.2f m/s")
@@ -245,7 +245,7 @@ with col_left:
                 c.button(label, key=f"clo_{val}", on_click=set_val, args=("clo", val), use_container_width=True)
 
 result = pmv_ppd(
-    st.session_state.ta, st.session_state.tr, st.session_state.vel,
+    f_to_c(st.session_state.ta), f_to_c(st.session_state.tr), st.session_state.vel,
     st.session_state.rh, st.session_state.met, st.session_state.clo,
 )
 
