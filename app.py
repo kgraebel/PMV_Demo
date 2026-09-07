@@ -3,8 +3,10 @@
 import streamlit as st
 from dotenv import load_dotenv
 
+from mrt import CEILING_R_PRESETS, FLOOR_R_PRESETS, WALL_R_PRESETS, WINDOW_R_PRESETS, RoomMRTEstimator
 from nest import NestAPIError, NestThermostat
 from pmv import CLO_PRESETS, MET_PRESETS, c_to_f, f_to_c, pmv_ppd
+from weather import OutdoorWeather, WeatherAPIError
 
 load_dotenv()
 
@@ -163,13 +165,13 @@ CSS = """
   .field-name{ font-size: 0.85rem; font-weight: 600; color: var(--ink); }
   .field-sym{ color: var(--ink-soft); font-family:"IBM Plex Mono", monospace; font-weight:500; font-size:0.76rem; }
 
-  .nest-value{
+  .sourced-value{
     display:flex; align-items:center; justify-content:space-between;
     background:var(--surface-2); border:1px solid var(--accent);
     border-radius:8px; padding:0.6rem 0.9rem; margin-bottom:1.1rem;
   }
-  .nest-value .nest-num{ font-family:"IBM Plex Mono", monospace; font-weight:600; font-size:1rem; color:var(--ink); }
-  .nest-value .nest-tag{
+  .sourced-value .sourced-num{ font-family:"IBM Plex Mono", monospace; font-weight:600; font-size:1rem; color:var(--ink); }
+  .sourced-value .sourced-tag{
     font-size:0.6rem; text-transform:uppercase; letter-spacing:0.07em;
     color:var(--accent-ink); background:var(--accent); font-weight:600;
     padding:0.15rem 0.4rem; border-radius:4px; margin-left:0.55rem;
@@ -185,6 +187,7 @@ DEFAULTS = {"ta": c_to_f(24.0), "tr": c_to_f(24.0), "vel": 0.1, "rh": 50.0, "met
 for k, v in DEFAULTS.items():
     st.session_state.setdefault(k, v)
 st.session_state.setdefault("nest_pulled", False)
+st.session_state.setdefault("mrt_estimated", False)
 
 
 def set_val(key, val):
@@ -206,6 +209,47 @@ def pull_from_nest():
 def use_manual_inputs():
     st.session_state.nest_pulled = False
     st.session_state._just_switched_manual = True
+
+
+def estimate_mrt():
+    location = st.session_state.get("mrt_location", "").strip()
+    if not location:
+        st.session_state.mrt_error = "Enter a city or ZIP code first."
+        return
+    try:
+        conditions = OutdoorWeather(location_name=location).get_current_conditions()
+    except WeatherAPIError as e:
+        st.session_state.mrt_error = str(e)
+        return
+
+    try:
+        room = RoomMRTEstimator(
+            length_ft=st.session_state.room_length,
+            width_ft=st.session_state.room_width,
+            height_ft=st.session_state.room_height,
+            exterior_walls=st.session_state.room_ext_walls,
+            ceiling_exposed=st.session_state.room_ceiling_exposed,
+            floor_exposed=st.session_state.room_floor_exposed,
+            window_area_ft2=st.session_state.room_window_area,
+            wall_r_value=WALL_R_PRESETS[st.session_state.room_wall_r_idx][1],
+            ceiling_r_value=CEILING_R_PRESETS[st.session_state.room_ceiling_r_idx][1],
+            floor_r_value=FLOOR_R_PRESETS[st.session_state.room_floor_r_idx][1],
+            window_r_value=WINDOW_R_PRESETS[st.session_state.room_window_r_idx][1],
+        )
+        result = room.estimate(indoor_air_temp_f=st.session_state.ta, outside_temp_f=conditions.temperature_f)
+    except ValueError as e:
+        st.session_state.mrt_error = str(e)
+        return
+
+    st.session_state.tr = round(result.mrt_f, 1)
+    st.session_state.mrt_estimated = True
+    st.session_state.mrt_outside_note = f"{conditions.temperature_f:.0f} °F outside in {conditions.location_name}"
+    st.session_state.mrt_error = None
+
+
+def use_manual_tr():
+    st.session_state.mrt_estimated = False
+    st.session_state._just_switched_manual_tr = True
 
 
 st.markdown(
@@ -235,11 +279,11 @@ with col_left:
         # value AND Session State" warning, so only do it for that one transition run.
         just_switched_manual = st.session_state.pop("_just_switched_manual", False)
         if st.session_state.nest_pulled:
-            st.button("Edit manually instead", on_click=use_manual_inputs, use_container_width=True)
+            st.button("Edit manually instead", on_click=use_manual_inputs, use_container_width=True, key="ta_rh_manual_btn")
             st.markdown(
-                f'<div class="nest-value">'
+                f'<div class="sourced-value">'
                 f'<span class="field-name">Air temperature <span class="field-sym">t&#8320;</span></span>'
-                f'<span><span class="nest-num">{st.session_state.ta:.1f} °F</span><span class="nest-tag">Nest</span></span>'
+                f'<span><span class="sourced-num">{st.session_state.ta:.1f} °F</span><span class="sourced-tag">Nest</span></span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -249,17 +293,65 @@ with col_left:
             slider_kwargs = {"value": st.session_state.ta} if just_switched_manual else {}
             ta = st.slider("Air temperature", 50.0, 104.0, step=0.2, key="ta", label_visibility="collapsed", format="%.1f °F", **slider_kwargs)
 
-        st.markdown('<span class="field-name">Mean radiant temperature <span class="field-sym">t&#7523;</span></span>', unsafe_allow_html=True)
-        tr = st.slider("Mean radiant temperature", 50.0, 104.0, step=0.2, key="tr", label_visibility="collapsed", format="%.1f °F")
+        with st.expander("🏠 Estimate mean radiant temperature from room & weather"):
+            st.text_input("Location (city, state or ZIP)", key="mrt_location", placeholder="e.g. Chicago, IL")
+
+            d1, d2, d3 = st.columns(3)
+            d1.number_input("Length (ft)", min_value=1.0, value=12.0, step=0.5, key="room_length")
+            d2.number_input("Width (ft)", min_value=1.0, value=10.0, step=0.5, key="room_width")
+            d3.number_input("Height (ft)", min_value=1.0, value=8.0, step=0.5, key="room_height")
+
+            st.selectbox("Exterior walls", [0, 1, 2, 3, 4], index=1, key="room_ext_walls", format_func=lambda n: f"{n} of 4")
+            st.markdown('<span style="font-size:0.85rem;">Also exposed to outside:</span>', unsafe_allow_html=True)
+            e2, e3 = st.columns(2)
+            e2.checkbox("Ceiling", key="room_ceiling_exposed", help="Top floor / attic above with no conditioned space")
+            e3.checkbox("Floor", key="room_floor_exposed", help="Over a garage, crawlspace, or outdoors")
+
+            st.number_input("Window area (sq ft)", min_value=0.0, value=15.0, step=1.0, key="room_window_area")
+
+            def r_select(label, presets, key, default_index):
+                st.selectbox(label, range(len(presets)), index=default_index, key=key,
+                             format_func=lambda i: f"{presets[i][0]} (R-{presets[i][1]:g})")
+
+            f1, f2 = st.columns(2)
+            with f1:
+                r_select("Wall insulation", WALL_R_PRESETS, "room_wall_r_idx", 1)
+                r_select("Floor insulation", FLOOR_R_PRESETS, "room_floor_r_idx", 1)
+            with f2:
+                r_select("Ceiling insulation", CEILING_R_PRESETS, "room_ceiling_r_idx", 1)
+                r_select("Window type", WINDOW_R_PRESETS, "room_window_r_idx", 1)
+
+            st.button("Estimate", on_click=estimate_mrt, use_container_width=True, key="estimate_mrt_btn")
+            if st.session_state.get("mrt_error"):
+                st.error(st.session_state.mrt_error)
+
+        just_switched_manual_tr = st.session_state.pop("_just_switched_manual_tr", False)
+        if st.session_state.mrt_estimated:
+            st.button("Edit manually instead", on_click=use_manual_tr, use_container_width=True, key="tr_manual_btn")
+            st.markdown(
+                f'<div class="sourced-value">'
+                f'<span class="field-name">Mean radiant temperature <span class="field-sym">t&#7523;</span></span>'
+                f'<span><span class="sourced-num">{st.session_state.tr:.1f} °F</span><span class="sourced-tag">Estimated</span></span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            note = st.session_state.get("mrt_outside_note")
+            if note:
+                st.caption(note)
+            tr = st.session_state.tr
+        else:
+            st.markdown('<span class="field-name">Mean radiant temperature <span class="field-sym">t&#7523;</span></span>', unsafe_allow_html=True)
+            slider_kwargs = {"value": st.session_state.tr} if just_switched_manual_tr else {}
+            tr = st.slider("Mean radiant temperature", 50.0, 104.0, step=0.2, key="tr", label_visibility="collapsed", format="%.1f °F", **slider_kwargs)
 
         st.markdown('<span class="field-name">Air speed, relative <span class="field-sym">v</span></span>', unsafe_allow_html=True)
         vel = st.slider("Air speed", 0.0, 2.0, step=0.01, key="vel", label_visibility="collapsed", format="%.2f m/s")
 
         if st.session_state.nest_pulled:
             st.markdown(
-                f'<div class="nest-value">'
+                f'<div class="sourced-value">'
                 f'<span class="field-name">Relative humidity <span class="field-sym">RH</span></span>'
-                f'<span><span class="nest-num">{st.session_state.rh:.0f} %</span><span class="nest-tag">Nest</span></span>'
+                f'<span><span class="sourced-num">{st.session_state.rh:.0f} %</span><span class="sourced-tag">Nest</span></span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
