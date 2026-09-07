@@ -1,6 +1,7 @@
 """PMV Comfort Gauge — Streamlit rebuild of the thermal comfort calculator."""
 
 import streamlit as st
+import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
 from mrt import CEILING_R_PRESETS, FLOOR_R_PRESETS, WALL_R_PRESETS, WINDOW_R_PRESETS, RoomMRTEstimator
@@ -188,7 +189,7 @@ for k, v in DEFAULTS.items():
     st.session_state.setdefault(k, v)
 st.session_state.setdefault("nest_pulled", False)
 st.session_state.setdefault("mrt_estimated", False)
-st.session_state.setdefault("mrt_expander_expanded", True)
+st.session_state.setdefault("mrt_expander_expanded", False)
 
 
 def set_val(key, val):
@@ -246,6 +247,7 @@ def estimate_mrt():
     st.session_state.mrt_outside_note = f"{conditions.temperature_f:.0f} °F outside in {conditions.location_name}"
     st.session_state.mrt_error = None
     st.session_state.mrt_expander_expanded = False
+    st.session_state.mrt_just_estimated = True
 
 
 def use_manual_tr():
@@ -313,6 +315,7 @@ with col_left:
             rh = st.slider("Relative humidity", 0.0, 100.0, value=st.session_state.rh, step=1.0, key="rh_input", label_visibility="collapsed", format="%.0f %%")
             st.session_state.rh = rh
 
+        st.markdown('<div id="mrt-section-anchor"></div>', unsafe_allow_html=True)
         with st.expander("🏠 Estimate mean radiant temperature from room & weather",
                           expanded=st.session_state.mrt_expander_expanded):
             st.text_input("Location (city, state or ZIP)", key="mrt_location", placeholder="e.g. Chicago, IL")
@@ -363,6 +366,26 @@ with col_left:
             st.markdown('<span class="field-name">Mean radiant temperature <span class="field-sym">t&#7523;</span></span>', unsafe_allow_html=True)
             tr = st.slider("Mean radiant temperature", 50.0, 104.0, value=st.session_state.tr, step=0.2, key="tr_input", label_visibility="collapsed", format="%.1f °F")
             st.session_state.tr = tr
+
+        if st.session_state.pop("mrt_just_estimated", False):
+            # The expander just collapsed, so the page is now shorter than when the
+            # user clicked "Estimate" from further down inside it. Scroll the section
+            # back to the top of the viewport so they land on the result instead of
+            # wherever the page happens to end up after that height disappears.
+            components.html(
+                """
+                <script>
+                  // The DOM collapse from closing the expander hasn't necessarily
+                  // finished reflowing yet the instant this iframe loads -- a short
+                  // delay lets scrollIntoView measure the settled layout.
+                  setTimeout(function() {
+                    const el = window.parent.document.getElementById('mrt-section-anchor');
+                    if (el) { el.scrollIntoView({behavior: 'smooth', block: 'start'}); }
+                  }, 150);
+                </script>
+                """,
+                height=0,
+            )
 
         st.markdown('<span class="field-name">Air speed, relative <span class="field-sym">v</span></span>', unsafe_allow_html=True)
         vel = st.slider("Air speed", 0.0, 2.0, step=0.01, key="vel", label_visibility="collapsed", format="%.2f m/s")
