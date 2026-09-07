@@ -4,18 +4,15 @@ An interactive calculator that estimates **Predicted Mean Vote (PMV)** and
 **Predicted Percentage Dissatisfied (PPD)** from Fanger's steady-state
 thermal comfort model, per ISO 7730 / ASHRAE 55.
 
-Two versions, same model:
+Run with:
 
-- **`index.html`** — static HTML/JS, open directly in a browser, no build step.
-- **`app.py`** — Streamlit app with the same inputs/outputs. Run with:
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run app.py
+```
 
-  ```bash
-  python3 -m venv .venv && source .venv/bin/activate
-  pip install -r requirements.txt
-  streamlit run app.py
-  ```
-
-  The PMV/PPD math lives in `pmv.py`, importable on its own (`from pmv import pmv_ppd`).
+The PMV/PPD math lives in `pmv.py`, importable on its own (`from pmv import pmv_ppd`).
 
 ## Inputs
 
