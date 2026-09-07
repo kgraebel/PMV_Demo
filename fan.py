@@ -21,9 +21,9 @@ class FanAirSpeed:
     """Vends low/medium/high fan-speed air speed presets, in m/s."""
 
     SETTINGS: List[FanSpeedPreset] = [
-        FanSpeedPreset("Low", 0.3),
-        FanSpeedPreset("Medium", 0.8),
-        FanSpeedPreset("High", 1.5),
+        FanSpeedPreset("Fan Low", 0.3),
+        FanSpeedPreset("Fan Medium", 0.8),
+        FanSpeedPreset("Fan High", 1.5),
     ]
 
     @classmethod
