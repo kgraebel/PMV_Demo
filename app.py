@@ -440,7 +440,12 @@ if st.session_state.nest_pulled:
     ))
     recommended_f = round(recommended_f * 2) / 2  # nearest 0.5F, matching real thermostat steps
     current_setpoint = st.session_state.nest_setpoint_f
-    current_str = f"{current_setpoint:.1f} °F" if current_setpoint is not None else "Not set"
+    mode_labels = {"HEAT": "Heat", "COOL": "Cool", "HEATCOOL": "Auto", "OFF": "Off"}
+    mode_label = mode_labels.get(st.session_state.nest_mode)
+    if current_setpoint is not None:
+        current_str = f"{current_setpoint:.1f} °F" + (f" · {mode_label}" if mode_label else "")
+    else:
+        current_str = "Not set" + (f" ({mode_label})" if mode_label else "")
     setpoint_html = (
         '<div class="metrics-row">'
         f'<div class="metric-tile"><div class="k">Current setpoint</div><div class="v">{current_str}</div></div>'
@@ -461,11 +466,11 @@ with col_right:
           <div class="gauge-track"><div class="gauge-marker" style="left:{marker_pct:.2f}%"></div></div>
           <div class="gauge-ticks"><span>&minus;3</span><span>&minus;2</span><span>&minus;1</span><span>0</span><span>+1</span><span>+2</span><span>+3</span></div>
           <div class="gauge-words"><span>Cold</span><span>Cool</span><span>Sl. cool</span><span>Neutral</span><span>Sl. warm</span><span>Warm</span><span>Hot</span></div>
-          {setpoint_html}
           <div class="metrics-row">
             <div class="metric-tile"><div class="k">Dissatisfied</div><div class="v">{result.ppd:.1f}%</div></div>
             <div class="metric-tile"><div class="k">Skin heat balance</div><div class="v">{result.balance:+.1f} W/m²</div></div>
           </div>
+          {setpoint_html}
 
           <div class="category-strip">
             <div class="category-dot" style="background:var(--{cat_var})"></div>
