@@ -293,6 +293,20 @@ with col_left:
             slider_kwargs = {"value": st.session_state.ta} if just_switched_manual else {}
             ta = st.slider("Air temperature", 50.0, 104.0, step=0.2, key="ta", label_visibility="collapsed", format="%.1f °F", **slider_kwargs)
 
+        if st.session_state.nest_pulled:
+            st.markdown(
+                f'<div class="sourced-value">'
+                f'<span class="field-name">Relative humidity <span class="field-sym">RH</span></span>'
+                f'<span><span class="sourced-num">{st.session_state.rh:.0f} %</span><span class="sourced-tag">Nest</span></span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            rh = st.session_state.rh
+        else:
+            st.markdown('<span class="field-name">Relative humidity <span class="field-sym">RH</span></span>', unsafe_allow_html=True)
+            slider_kwargs = {"value": st.session_state.rh} if just_switched_manual else {}
+            rh = st.slider("Relative humidity", 0.0, 100.0, step=1.0, key="rh", label_visibility="collapsed", format="%.0f %%", **slider_kwargs)
+
         with st.expander("🏠 Estimate mean radiant temperature from room & weather"):
             st.text_input("Location (city, state or ZIP)", key="mrt_location", placeholder="e.g. Chicago, IL")
 
@@ -346,20 +360,6 @@ with col_left:
 
         st.markdown('<span class="field-name">Air speed, relative <span class="field-sym">v</span></span>', unsafe_allow_html=True)
         vel = st.slider("Air speed", 0.0, 2.0, step=0.01, key="vel", label_visibility="collapsed", format="%.2f m/s")
-
-        if st.session_state.nest_pulled:
-            st.markdown(
-                f'<div class="sourced-value">'
-                f'<span class="field-name">Relative humidity <span class="field-sym">RH</span></span>'
-                f'<span><span class="sourced-num">{st.session_state.rh:.0f} %</span><span class="sourced-tag">Nest</span></span>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-            rh = st.session_state.rh
-        else:
-            st.markdown('<span class="field-name">Relative humidity <span class="field-sym">RH</span></span>', unsafe_allow_html=True)
-            slider_kwargs = {"value": st.session_state.rh} if just_switched_manual else {}
-            rh = st.slider("Relative humidity", 0.0, 100.0, step=1.0, key="rh", label_visibility="collapsed", format="%.0f %%", **slider_kwargs)
 
         st.markdown('<span class="field-name">Metabolic rate <span class="field-sym">M</span></span>', unsafe_allow_html=True)
         met = st.slider("Metabolic rate", 0.7, 4.0, step=0.05, key="met", label_visibility="collapsed", format="%.2f met")
