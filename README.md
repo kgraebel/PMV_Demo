@@ -57,10 +57,6 @@ project (one-time $5 fee) and an OAuth client:
 Or skip the script and copy `.env.example` to `.env` by hand — **never commit
 `.env`**, it holds live credentials.
 
-Don't know your device ID? Leave `NEST_DEVICE_ID` blank and run:
-
-```python
-from nest import NestThermostat
-for d in NestThermostat().list_devices():
-    print(d)
-```
+Don't know your device ID? Leave `NEST_DEVICE_ID` blank, then run
+`python3 list_devices.py` and copy the `device_id` it prints for your
+thermostat into `.env`.
