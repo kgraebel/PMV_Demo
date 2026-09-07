@@ -39,19 +39,23 @@ sliders from it. (Nest doesn't measure mean radiant temperature, air
 speed, metabolic rate, or clothing insulation — those stay manual.)
 
 Requires a Google [Device Access](https://developers.google.com/nest/device-access)
-project (one-time $5 fee), an OAuth client, and a refresh token obtained
-through the one-time consent flow described in that guide.
+project (one-time $5 fee) and an OAuth client:
 
-Copy `.env.example` to `.env` and fill in your own values — **never commit
-`.env`**, it holds live credentials:
+1. In [Google Cloud Console](https://console.cloud.google.com), enable the
+   **Smart Device Management API** and create an OAuth client ID (type: Web
+   application) with `https://www.google.com` as an authorized redirect URI.
+2. In the [Device Access Console](https://console.nest.google.com/device-access),
+   pay the one-time fee and create a project linked to that OAuth client ID.
+   Its project ID is your `NEST_PROJECT_ID`.
+3. Make sure your thermostat shows up in the Google Home app under the same
+   account you'll authorize with.
+4. Run `python3 nest_setup.py` — it walks you through the consent screen and
+   writes `NEST_PROJECT_ID` / `NEST_CLIENT_ID` / `NEST_CLIENT_SECRET` /
+   `NEST_REFRESH_TOKEN` straight into your local `.env` file. Run this
+   yourself in your own terminal; it only talks to Google's OAuth endpoints.
 
-```
-NEST_PROJECT_ID=...
-NEST_CLIENT_ID=...
-NEST_CLIENT_SECRET=...
-NEST_REFRESH_TOKEN=...
-NEST_DEVICE_ID=...
-```
+Or skip the script and copy `.env.example` to `.env` by hand — **never commit
+`.env`**, it holds live credentials.
 
 Don't know your device ID? Leave `NEST_DEVICE_ID` blank and run:
 
