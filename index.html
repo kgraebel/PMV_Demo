@@ -621,7 +621,7 @@
     var p5 = (308.7 - 0.028 * mw) + p2 * Math.pow(tra / 100, 4);
 
     var xn = tcla / 100;
-    var xf = tcla / 100;
+    var xf = tcla / 50;
     var eps = 0.00015;
     var n = 0;
 
@@ -639,7 +639,7 @@
     var hl2 = (mw > 58.15) ? 0.42 * (mw - 58.15) : 0;
     var hl3 = 1.7 * 0.00001 * m * (5867 - pa);
     var hl4 = 0.0014 * m * (34 - ta);
-    var hl5 = 3.96 * p1 * (Math.pow(xn, 4) - Math.pow(tra / 100, 4));
+    var hl5 = 3.96 * fcl * (Math.pow(xn, 4) - Math.pow(tra / 100, 4));
     var hl6 = fcl * hc * (tcl - ta);
 
     var ts = 0.303 * Math.exp(-0.036 * m) + 0.028;
