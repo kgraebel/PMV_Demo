@@ -4,3 +4,4 @@ __pycache__/
 streamlit.log
 .streamlit/
 .env
+client_secret_*.json

@@ -4,6 +4,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
+from fan import FAN_SPEED_PRESETS
 from mrt import CEILING_R_PRESETS, FLOOR_R_PRESETS, WALL_R_PRESETS, WINDOW_R_PRESETS, RoomMRTEstimator
 from nest import NestAPIError, NestThermostat
 from pmv import CLO_PRESETS, MET_PRESETS, c_to_f, f_to_c, pmv_ppd
@@ -397,6 +398,8 @@ with col_left:
 
         st.markdown('<span class="field-name">Air speed, relative <span class="field-sym">v</span></span>', unsafe_allow_html=True)
         vel = st.slider("Air speed", 0.0, 2.0, step=0.01, key="vel", label_visibility="collapsed", format="%.2f m/s")
+        for c, (label, val) in zip(st.columns(3), FAN_SPEED_PRESETS):
+            c.button(label, key=f"vel_{val}", on_click=set_val, args=("vel", val), use_container_width=True)
 
         st.markdown('<span class="field-name">Metabolic rate <span class="field-sym">M</span></span>', unsafe_allow_html=True)
         met = st.slider("Metabolic rate", 0.7, 4.0, step=0.05, key="met", label_visibility="collapsed", format="%.2f met")
