@@ -368,18 +368,26 @@ with col_left:
             st.session_state.tr = tr
 
         if st.session_state.pop("mrt_just_estimated", False):
-            # The expander just collapsed, so the page is now shorter than when the
-            # user clicked "Estimate" from further down inside it. Scroll the section
-            # back to the top of the viewport so they land on the result instead of
-            # wherever the page happens to end up after that height disappears.
+            # st.expander's expanded= is only honored on its very first mount; once
+            # the user has manually toggled it open, Streamlit no longer re-syncs it
+            # from later reruns (there's no key= in this Streamlit version to make it
+            # controlled), so passing expanded=False here alone doesn't close a
+            # section the user already opened by hand. Force it directly in the DOM
+            # instead, then scroll the (now much shorter) page back up so the user
+            # lands on the result instead of wherever the page happens to end up.
             components.html(
                 """
                 <script>
-                  // The DOM collapse from closing the expander hasn't necessarily
-                  // finished reflowing yet the instant this iframe loads -- a short
-                  // delay lets scrollIntoView measure the settled layout.
+                  // The DOM hasn't necessarily finished reflowing the instant this
+                  // iframe loads -- a short delay lets both operations below act on
+                  // the settled layout.
                   setTimeout(function() {
-                    const el = window.parent.document.getElementById('mrt-section-anchor');
+                    const doc = window.parent.document;
+                    const exp = Array.from(doc.querySelectorAll('[data-testid="stExpander"]'))
+                      .find(e => e.textContent.includes('Estimate mean radiant temperature'));
+                    const details = exp ? exp.querySelector('details') : null;
+                    if (details) { details.open = false; }
+                    const el = doc.getElementById('mrt-section-anchor');
                     if (el) { el.scrollIntoView({behavior: 'smooth', block: 'start'}); }
                   }, 150);
                 </script>
