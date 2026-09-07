@@ -253,16 +253,55 @@ def use_manual_tr():
     st.session_state.mrt_estimated = False
 
 
+def reset_all():
+    for k, v in DEFAULTS.items():
+        st.session_state[k] = v
+    st.session_state.nest_pulled = False
+    st.session_state.nest_setpoint_f = None
+    st.session_state.nest_mode = None
+    st.session_state.nest_error = None
+    st.session_state.mrt_estimated = False
+    st.session_state.mrt_expander_expanded = False
+    st.session_state.mrt_error = None
+    st.session_state.mrt_outside_note = None
+    st.session_state.mrt_location = ""
+    st.session_state.just_reset = True
+
+
 st.markdown(
     """
     <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem;">
       <h1 class="page-title">Kevin Graebel's Predicted Mean Vote calculator</h1>
       <div class="standard-tag">ISO 7730 · ASHRAE 55<br>six-parameter steady-state model</div>
     </div>
-    <hr class="header-rule">
     """,
     unsafe_allow_html=True,
 )
+header_spacer, header_reset = st.columns([5, 1])
+with header_reset:
+    st.button("Reset", on_click=reset_all, use_container_width=True)
+st.markdown('<hr class="header-rule">', unsafe_allow_html=True)
+
+if st.session_state.pop("just_reset", False):
+    # Same issue as the post-estimate collapse: once the user has manually
+    # toggled the MRT expander open, Streamlit stops honoring expanded=False
+    # on later reruns, so resetting the flag alone doesn't visibly close it.
+    # Force it in the DOM directly. No scroll here (unlike after an estimate)
+    # -- Reset is clicked from the top of the page, so there's nothing to
+    # scroll back to.
+    components.html(
+        """
+        <script>
+          setTimeout(function() {
+            const exp = Array.from(window.parent.document.querySelectorAll('[data-testid="stExpander"]'))
+              .find(e => e.textContent.includes('Estimate mean radiant temperature'));
+            const details = exp ? exp.querySelector('details') : null;
+            if (details) { details.open = false; }
+          }, 150);
+        </script>
+        """,
+        height=0,
+    )
 
 col_left, col_right = st.columns([1.05, 0.95], gap="large")
 
