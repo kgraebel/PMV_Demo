@@ -163,6 +163,18 @@ CSS = """
   .field-name{ font-size: 0.85rem; font-weight: 600; color: var(--ink); }
   .field-sym{ color: var(--ink-soft); font-family:"IBM Plex Mono", monospace; font-weight:500; font-size:0.76rem; }
 
+  .nest-value{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--surface-2); border:1px solid var(--accent);
+    border-radius:8px; padding:0.6rem 0.9rem; margin-bottom:1.1rem;
+  }
+  .nest-value .nest-num{ font-family:"IBM Plex Mono", monospace; font-weight:600; font-size:1rem; color:var(--ink); }
+  .nest-value .nest-tag{
+    font-size:0.6rem; text-transform:uppercase; letter-spacing:0.07em;
+    color:var(--accent-ink); background:var(--accent); font-weight:600;
+    padding:0.15rem 0.4rem; border-radius:4px; margin-left:0.55rem;
+  }
+
   div[data-testid="stSlider"] { padding-top: 0.1rem; }
   button[kind="secondary"]{ font-size: 0.72rem !important; }
 </style>
@@ -172,6 +184,7 @@ st.markdown(CSS, unsafe_allow_html=True)
 DEFAULTS = {"ta": c_to_f(24.0), "tr": c_to_f(24.0), "vel": 0.1, "rh": 50.0, "met": 1.1, "clo": 0.61}
 for k, v in DEFAULTS.items():
     st.session_state.setdefault(k, v)
+st.session_state.setdefault("nest_pulled", False)
 
 
 def set_val(key, val):
@@ -185,13 +198,18 @@ def pull_from_nest():
         st.session_state.nest_status = ("error", str(e))
         return
     st.session_state.ta = round(c_to_f(conditions.air_temperature_c), 1)
-    st.session_state.rh = round(conditions.relative_humidity_pct)
+    st.session_state.rh = round(conditions.relative_humidity_pct, 0)
+    st.session_state.nest_pulled = True
     where = conditions.room_name or conditions.device_id
     st.session_state.nest_status = (
         "success",
         f"Pulled from {where}: {c_to_f(conditions.air_temperature_c):.1f} °F, "
         f"{conditions.relative_humidity_pct:.0f}% RH.",
     )
+
+
+def use_manual_inputs():
+    st.session_state.nest_pulled = False
 
 
 st.markdown(
@@ -217,9 +235,19 @@ with col_left:
         if status:
             level, message = status
             (st.success if level == "success" else st.error)(message)
-
-        st.markdown('<span class="field-name">Air temperature <span class="field-sym">t&#8320;</span></span>', unsafe_allow_html=True)
-        ta = st.slider("Air temperature", 50.0, 104.0, step=0.2, key="ta", label_visibility="collapsed", format="%.1f °F")
+        if st.session_state.nest_pulled:
+            st.button("Edit manually instead", on_click=use_manual_inputs, use_container_width=True)
+            st.markdown(
+                f'<div class="nest-value">'
+                f'<span class="field-name">Air temperature <span class="field-sym">t&#8320;</span></span>'
+                f'<span><span class="nest-num">{st.session_state.ta:.1f} °F</span><span class="nest-tag">Nest</span></span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            ta = st.session_state.ta
+        else:
+            st.markdown('<span class="field-name">Air temperature <span class="field-sym">t&#8320;</span></span>', unsafe_allow_html=True)
+            ta = st.slider("Air temperature", 50.0, 104.0, value=st.session_state.ta, step=0.2, key="ta", label_visibility="collapsed", format="%.1f °F")
 
         st.markdown('<span class="field-name">Mean radiant temperature <span class="field-sym">t&#7523;</span></span>', unsafe_allow_html=True)
         tr = st.slider("Mean radiant temperature", 50.0, 104.0, step=0.2, key="tr", label_visibility="collapsed", format="%.1f °F")
@@ -227,8 +255,18 @@ with col_left:
         st.markdown('<span class="field-name">Air speed, relative <span class="field-sym">v</span></span>', unsafe_allow_html=True)
         vel = st.slider("Air speed", 0.0, 2.0, step=0.01, key="vel", label_visibility="collapsed", format="%.2f m/s")
 
-        st.markdown('<span class="field-name">Relative humidity <span class="field-sym">RH</span></span>', unsafe_allow_html=True)
-        rh = st.slider("Relative humidity", 0.0, 100.0, step=1.0, key="rh", label_visibility="collapsed", format="%.0f %%")
+        if st.session_state.nest_pulled:
+            st.markdown(
+                f'<div class="nest-value">'
+                f'<span class="field-name">Relative humidity <span class="field-sym">RH</span></span>'
+                f'<span><span class="nest-num">{st.session_state.rh:.0f} %</span><span class="nest-tag">Nest</span></span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            rh = st.session_state.rh
+        else:
+            st.markdown('<span class="field-name">Relative humidity <span class="field-sym">RH</span></span>', unsafe_allow_html=True)
+            rh = st.slider("Relative humidity", 0.0, 100.0, value=st.session_state.rh, step=1.0, key="rh", label_visibility="collapsed", format="%.0f %%")
 
         st.markdown('<span class="field-name">Metabolic rate <span class="field-sym">M</span></span>', unsafe_allow_html=True)
         met = st.slider("Metabolic rate", 0.7, 4.0, step=0.05, key="met", label_visibility="collapsed", format="%.2f met")
