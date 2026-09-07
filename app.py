@@ -195,17 +195,12 @@ def pull_from_nest():
     try:
         conditions = NestThermostat().get_room_conditions()
     except NestAPIError as e:
-        st.session_state.nest_status = ("error", str(e))
+        st.session_state.nest_error = str(e)
         return
     st.session_state.ta = round(c_to_f(conditions.air_temperature_c), 1)
     st.session_state.rh = round(conditions.relative_humidity_pct, 0)
     st.session_state.nest_pulled = True
-    where = conditions.room_name or conditions.device_id
-    st.session_state.nest_status = (
-        "success",
-        f"Pulled from {where}: {c_to_f(conditions.air_temperature_c):.1f} °F, "
-        f"{conditions.relative_humidity_pct:.0f}% RH.",
-    )
+    st.session_state.nest_error = None
 
 
 def use_manual_inputs():
@@ -231,10 +226,8 @@ with col_left:
         st.markdown('<div class="panel-title">Room &amp; occupant inputs</div>', unsafe_allow_html=True)
 
         st.button("🌡️ Pull temperature & humidity from Nest", on_click=pull_from_nest, use_container_width=True)
-        status = st.session_state.get("nest_status")
-        if status:
-            level, message = status
-            (st.success if level == "success" else st.error)(message)
+        if st.session_state.get("nest_error"):
+            st.error(st.session_state.nest_error)
         if st.session_state.nest_pulled:
             st.button("Edit manually instead", on_click=use_manual_inputs, use_container_width=True)
             st.markdown(
