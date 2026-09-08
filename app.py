@@ -144,6 +144,7 @@ CSS = """
   .gauge-words span{ font-size:0.6rem; color:var(--ink-soft); width:14.28%; text-align:center; }
 
   .metrics-row{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden; margin-top:1.2rem; }
+  .metrics-row-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden; margin-top:1.2rem; }
   .metric-tile{ background:var(--surface); padding:0.8rem 1rem; }
   .metric-tile .k{ font-size:0.66rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-soft); font-weight:600; }
   .metric-tile .v{ font-family:"IBM Plex Mono", monospace; font-size:1.25rem; font-weight:600; color: var(--ink); margin-top:0.1rem; }
@@ -463,12 +464,19 @@ cat_var = {"Category I": "cat1", "Category II": "cat2", "Category III": "cat3", 
 setpoint_html = ""
 if st.session_state.nest_pulled:
     # Recomputed live from the current tr/vel/rh/met/clo (not frozen at pull
-    # time), so it stays correct as the user adjusts anything else.
-    recommended_f = c_to_f(recommended_air_temp_c(
+    # time), so it stays correct as the user adjusts anything else. The two
+    # setpoints bracket ISO 7730 Category II (|PMV| <= 0.5) rather than
+    # pointing at a single "neutral" temperature.
+    setpoint_neg_f = c_to_f(recommended_air_temp_c(
         f_to_c(st.session_state.tr), st.session_state.vel, st.session_state.rh,
-        st.session_state.met, st.session_state.clo,
+        st.session_state.met, st.session_state.clo, target_pmv=-0.5,
     ))
-    recommended_f = round(recommended_f * 2) / 2  # nearest 0.5F, matching real thermostat steps
+    setpoint_pos_f = c_to_f(recommended_air_temp_c(
+        f_to_c(st.session_state.tr), st.session_state.vel, st.session_state.rh,
+        st.session_state.met, st.session_state.clo, target_pmv=0.5,
+    ))
+    setpoint_neg_f = round(setpoint_neg_f * 2) / 2  # nearest 0.5F, matching real thermostat steps
+    setpoint_pos_f = round(setpoint_pos_f * 2) / 2
     current_setpoint = st.session_state.nest_setpoint_f
     mode_labels = {"HEAT": "Heat", "COOL": "Cool", "HEATCOOL": "Auto", "OFF": "Off"}
     mode_label = mode_labels.get(st.session_state.nest_mode)
@@ -477,9 +485,10 @@ if st.session_state.nest_pulled:
     else:
         current_str = "Not set" + (f" ({mode_label})" if mode_label else "")
     setpoint_html = (
-        '<div class="metrics-row">'
+        '<div class="metrics-row-3">'
         f'<div class="metric-tile"><div class="k">Current setpoint</div><div class="v">{current_str}</div></div>'
-        f'<div class="metric-tile"><div class="k">Recommended setpoint</div><div class="v">{recommended_f:.1f} °F</div></div>'
+        f'<div class="metric-tile"><div class="k">&minus;0.5 PMV setpoint</div><div class="v">{setpoint_neg_f:.1f} °F</div></div>'
+        f'<div class="metric-tile"><div class="k">+0.5 PMV setpoint</div><div class="v">{setpoint_pos_f:.1f} °F</div></div>'
         '</div>'
     )
 
